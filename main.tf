@@ -1,15 +1,22 @@
 terraform {
-  required_version = ">= 0.12"
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 2.65"
+    }
+  }
+
   backend "azurerm" {
     resource_group_name  = "infrapfeborges-rg"
-    storage_account_name = "storageaccountpfeca"
-    container_name       = "localdev"
+    storage_account_name = "storagepfeborges"
+    container_name       = "terraformdev"
     key                  = "production-terraform.state"
   }  
+
+  required_version = ">= 1.1.0"
 }
 
 provider "azurerm" {
-  version = "2.18.0" //outbound_type https://github.com/terraform-providers/terraform-provider-azurerm/blob/v2.5.0/CHANGELOG.md
   features {}
 }
 
@@ -56,13 +63,13 @@ module "kube_network" {
 }
 
 module "vnet_peering" {
-  source              = "./modules/vnet_peering"
-  vnet_kube_name         = var.hub_vnet_name
-  vnet_kube_id           = module.hub_network.vnet_id
-  vnet_kube_rg           = azurerm_resource_group.vnet.name
-  vnet_corp_name         = var.kube_vnet_name
-  vnet_corp_id           = module.kube_network.vnet_id
-  vnet_corp_rg           = azurerm_resource_group.kube.name
+  source                    = "./modules/vnet_peering"
+  vnet_kube_name            = var.hub_vnet_name
+  vnet_kube_id              = module.hub_network.vnet_id
+  vnet_kube_rg              = azurerm_resource_group.vnet.name
+  vnet_corp_name            = var.kube_vnet_name
+  vnet_corp_id              = module.kube_network.vnet_id
+  vnet_corp_rg              = azurerm_resource_group.kube.name
   peering_name_kube_to_corp = "HubToSpokeCorpToKube"
   peering_name_corp_to_kube = "SpokeToHubKubeToCorp"
 }
@@ -75,7 +82,7 @@ module "firewall" {
   fw_name        = var.fw_name
   subnet_id      = module.hub_network.subnet_ids["AzureFirewallSubnet"]
   dns_fw_name    = var.dns_fw_name
-  ingress_nginx  = var.ingress_nginx 
+  ingress_nginx  = var.ingress_nginx
 }
 
 module "routetable" {
@@ -103,16 +110,16 @@ resource "azurerm_kubernetes_cluster" "privateaks" {
   resource_group_name     = azurerm_resource_group.kube.name
   dns_prefix              = "private-aks"
   private_cluster_enabled = true
-  
+
   default_node_pool {
-    name                  = "default"
-    node_count            = var.nodepool_nodes_count
-    vm_size               = var.nodepool_vm_size
-    vnet_subnet_id        = module.kube_network.subnet_ids["aks-subnet"]
-    max_pods              = var.nodepool_max_pod
-    enable_auto_scaling   = true
-    min_count             = var.nodepool_auto_scaling_min_count
-    max_count             = var.nodepool_auto_scaling_max_count
+    name                = "default"
+    node_count          = var.nodepool_nodes_count
+    vm_size             = var.nodepool_vm_size
+    vnet_subnet_id      = module.kube_network.subnet_ids["aks-subnet"]
+    max_pods            = var.nodepool_max_pod
+    enable_auto_scaling = true
+    min_count           = var.nodepool_auto_scaling_min_count
+    max_count           = var.nodepool_auto_scaling_max_count
   }
 
   identity {
@@ -129,33 +136,33 @@ resource "azurerm_kubernetes_cluster" "privateaks" {
   }
 
   addon_profile {
-      oms_agent {
-        enabled                    = true
-        log_analytics_workspace_id = module.log_analytics.log_analytics_workspace_id
-      }
+    oms_agent {
+      enabled                    = true
+      log_analytics_workspace_id = module.log_analytics.log_analytics_workspace_id
+    }
 
-      aci_connector_linux {
-        enabled = false
-      }
+    aci_connector_linux {
+      enabled = false
+    }
 
-      http_application_routing {
-        enabled = false
-      }
+    http_application_routing {
+      enabled = false
+    }
   }
 
- tags = {
-        Environment = var.tags_environment_name
-    }
+  tags = {
+    Environment = var.tags_environment_name
+  }
 
   depends_on = [module.routetable, module.log_analytics]
 }
 
 resource "azurerm_container_registry" "acr" {
-  name                     = var.private_acr
-  resource_group_name      = azurerm_resource_group.vnet.name
-  location                 = var.location
-  sku                      = "Premium"
-  admin_enabled            = false
+  name                = var.private_acr
+  resource_group_name = azurerm_resource_group.vnet.name
+  location            = var.location
+  sku                 = "Premium"
+  admin_enabled       = false
 }
 
 # If needed we can add  Aditional  NodePools  and a different configuration

@@ -15,12 +15,12 @@ variable "kube_resource_group_name" {
 
 variable "location" {
   description = "The resource group location"
-  default     = "Canada Central"
+  default     = "eastus2"
 }
 
 variable "aks_version" {
   description = "Version of AKS"
-  default     = "1.15.12"
+  default     = "1.22.4"
 }
 
 variable "hub_vnet_name" {
@@ -73,21 +73,21 @@ variable "network_service_cidr" {
   default     = "10.2.0.0/24"
 }
 
-variable log_analytics_workspace_name {
-  default = "PoCLogAnalyticsWorkspaceNamebob"
+variable "log_analytics_workspace_name" {
+  default = "PoCLogAnalyticsWorkspaceNamerbb"
 }
 # refer https://azure.microsoft.com/global-infrastructure/services/?products=monitor for log analytics available regions
-variable log_analytics_workspace_location {
+variable "log_analytics_workspace_location" {
   default = "eastus2"
 }
 
 # refer https://azure.microsoft.com/pricing/details/monitor/ for log analytics pricing 
-variable log_analytics_workspace_sku {
+variable "log_analytics_workspace_sku" {
   default = "PerGB2018"
 }
 
-variable dns_fw_name {
-  default = "pocsecureaksbob"
+variable "dns_fw_name" {
+  default = "pocsecureaksrbb"
 }
 
 variable "ingress_nginx" {
@@ -97,10 +97,10 @@ variable "ingress_nginx" {
 
 variable "private_acr" {
   description = "Name of the private Azure Container Registry"
-  default     = "pocacraksbob"
+  default     = "pocacraksrbb"
 }
 
 variable "fw_name" {
   description = "Name of the firewall"
-  default     = "kubenetfwbob"
+  default     = "kubenetfwrbb"
 }
