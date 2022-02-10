@@ -244,3 +244,12 @@ resource "azurerm_role_assignment" "akspoolacrpull" {
   depends_on = [azurerm_kubernetes_cluster.privateaks]
 
 }
+
+resource "azurerm_role_assignment" "devopsagentrole" {
+  role_definition_name = "Azure Kubernetes Service Cluster Admin Role"
+  scope                = azurerm_kubernetes_cluster.privateaks.id
+  principal_id         = module.jumpbox.msi
+
+  depends_on = [azurerm_kubernetes_cluster.privateaks, module.jumpbox]
+
+}

@@ -12,3 +12,8 @@ output "jumpbox_password" {
   description = "Jumpbox VM admin password"
   value       = random_password.adminpassword.result
 }
+
+output "msi" {
+  description = "msi id for this machine"
+  value       = azurerm_linux_virtual_machine.jumpbox.identity[0].principal_id
+}

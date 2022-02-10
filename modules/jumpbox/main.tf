@@ -62,7 +62,9 @@ resource "azurerm_linux_virtual_machine" "jumpbox" {
   admin_username                  = var.vm_user
   admin_password                  = random_password.adminpassword.result
   disable_password_authentication = false
-
+  identity {
+    type  = "SystemAssigned"
+  }
   os_disk {
     name                 = "jumpboxOsDisk"
     caching              = "ReadWrite"
@@ -83,7 +85,8 @@ resource "azurerm_linux_virtual_machine" "jumpbox" {
       user     = var.vm_user
       password = random_password.adminpassword.result
     }
-
+    #TODO ADD the Kube config from AKS
+    # /home/azureuser/.kube/config
     inline = [
       "sudo apt-get update && sudo apt-get install -y apt-transport-https gnupg2",
       "curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -",
