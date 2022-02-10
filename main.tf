@@ -60,6 +60,10 @@ module "kube_network" {
     {
       name : "aks-subnet"
       address_prefixes : ["10.0.8.0/22"]
+    },
+    {
+      name : "acr-subnet"
+      address_prefixes : ["10.0.12.0/27"]
     }
   ]
 }
@@ -94,7 +98,8 @@ module "routetable" {
   rt_name            = "kubenetfw_fw_rt"
   r_name             = "kubenetfw_fw_r"
   firewal_private_ip = module.firewall.fw_private_ip
-  subnet_id          = module.kube_network.subnet_ids["aks-subnet"]
+  subnets            = values(module.kube_network.subnet_ids)
+  // subnet_id          = module.kube_network.subnet_ids["aks-subnet","acr-subnet"]
 }
 
 module "log_analytics" {
@@ -172,7 +177,7 @@ resource "azurerm_private_endpoint" "acr-endpoint" {
   name                = "acrpocrbb-endpoint"
   location            = var.location
   resource_group_name = azurerm_resource_group.vnet.name
-  subnet_id           = module.hub_network.subnet_ids["AzureFirewallSubnet"]
+  subnet_id           = module.kube_network.subnet_ids["acr-subnet"]
 
   private_service_connection {
     name                           = "acrpocaks-privateserviceconnection"
