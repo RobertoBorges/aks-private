@@ -31,11 +31,12 @@ resource "azurerm_resource_group" "kube" {
 }
 
 module "hub_network" {
-  source              = "./modules/vnet"
-  resource_group_name = azurerm_resource_group.vnet.name
-  location            = var.location
-  vnet_name           = var.hub_vnet_name
-  address_space       = ["10.0.0.0/22"]
+  source                                          = "./modules/vnet"
+  resource_group_name                             = azurerm_resource_group.vnet.name
+  location                                        = var.location
+  vnet_name                                       = var.hub_vnet_name
+  address_space                                   = ["10.0.0.0/22"]
+  enforce_private_link_endpoint_network_policies  = false
   subnets = [
     {
       name : "AzureFirewallSubnet"
@@ -49,11 +50,12 @@ module "hub_network" {
 }
 
 module "kube_network" {
-  source              = "./modules/vnet"
-  resource_group_name = azurerm_resource_group.kube.name
-  location            = var.location
-  vnet_name           = var.kube_vnet_name
-  address_space       = ["10.0.8.0/21"]
+  source                                          = "./modules/vnet"
+  resource_group_name                             = azurerm_resource_group.kube.name
+  location                                        = var.location
+  vnet_name                                       = var.kube_vnet_name
+  address_space                                   = ["10.0.8.0/21"]
+  enforce_private_link_endpoint_network_policies  = true
   subnets = [
     {
       name : "aks-subnet"
@@ -158,12 +160,28 @@ resource "azurerm_kubernetes_cluster" "privateaks" {
 }
 
 resource "azurerm_container_registry" "acr" {
-  name                = var.private_acr
-  resource_group_name = azurerm_resource_group.vnet.name
-  location            = var.location
-  sku                 = "Premium"
-  admin_enabled       = false
+  name                          = var.private_acr
+  resource_group_name           = azurerm_resource_group.vnet.name
+  location                      = var.location
+  sku                           = "Premium"
+  admin_enabled                 = false
+  public_network_access_enabled = false
 }
+
+resource "azurerm_private_endpoint" "acr-endpoint" {
+  name                = "acrpocrbb-endpoint"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.vnet.name
+  subnet_id           = module.hub_network.subnet_ids["AzureFirewallSubnet"]
+
+  private_service_connection {
+    name                           = "acrpocaks-privateserviceconnection"
+    private_connection_resource_id = azurerm_container_registry.acr.id
+    subresource_names              = [ "registry" ]
+    is_manual_connection           = false
+  }
+}
+
 
 # If needed we can add  Aditional  NodePools  and a different configuration
 # resource "azurerm_kubernetes_cluster_node_pool" "nodepool2" {

@@ -18,6 +18,11 @@ variable address_space {
   type        = list(string)
 }
 
+variable enforce_private_link_endpoint_network_policies  {
+  description = "Enforce endpoint"
+  type        = bool
+}
+
 variable subnets {
   description = "Subnets configuration"
   type = list(object({
