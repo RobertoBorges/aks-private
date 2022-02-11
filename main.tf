@@ -78,6 +78,8 @@ module "vnet_peering" {
   vnet_corp_rg              = azurerm_resource_group.kube.name
   peering_name_kube_to_corp = "HubToSpokeCorpToKube"
   peering_name_corp_to_kube = "SpokeToHubKubeToCorp"
+
+  depends_on = [module.hub_network, module.kube_network]
 }
 
 module "firewall" {
@@ -89,6 +91,8 @@ module "firewall" {
   subnet_id      = module.hub_network.subnet_ids["AzureFirewallSubnet"]
   dns_fw_name    = var.dns_fw_name
   ingress_nginx  = var.ingress_nginx
+
+  depends_on = [module.hub_network, module.kube_network]
 }
 
 module "routetable" {
@@ -100,7 +104,7 @@ module "routetable" {
   firewal_private_ip = module.firewall.fw_private_ip
   subnets            = module.kube_network.subnet_ids
 
-  depends_on = [module.kube_network, module.hub_network]
+  depends_on = [module.kube_network, module.hub_network, module.firewall]
 }
 
 module "log_analytics" {
@@ -125,6 +129,18 @@ module "private_dns_zone" {
   }
 
   tags = {}
+  depends_on = [module.hub_network, module.kube_network]
+}
+
+module "jumpbox" {
+  source                  = "./modules/jumpbox"
+  location                = var.location
+  resource_group          = azurerm_resource_group.vnet.name
+  vnet_id                 = module.hub_network.vnet_id
+  subnet_id               = module.hub_network.subnet_ids["jumpbox-subnet"]
+  dns_zone_name           = join(".", slice(split(".", azurerm_kubernetes_cluster.privateaks.private_fqdn), 1, length(split(".", azurerm_kubernetes_cluster.privateaks.private_fqdn))))
+  dns_zone_resource_group = azurerm_kubernetes_cluster.privateaks.node_resource_group
+  depends_on = [module.routetable]
 }
 
 resource "azurerm_kubernetes_cluster" "privateaks" {
@@ -178,7 +194,7 @@ resource "azurerm_kubernetes_cluster" "privateaks" {
     Environment = var.tags_environment_name
   }
 
-  depends_on = [module.routetable, module.log_analytics]
+  depends_on = [module.routetable, module.log_analytics, module.firewall]
 }
 
 resource "azurerm_container_registry" "acr" {
@@ -207,7 +223,7 @@ resource "azurerm_private_endpoint" "acr-endpoint" {
     name                  = "dns-group"
     private_dns_zone_ids  = [ module.private_dns_zone.id ]
   }
-  depends_on = [module.private_dns_zone]
+  depends_on = [module.private_dns_zone, azurerm_container_registry.acr]
 }
 
 
@@ -241,16 +257,6 @@ resource "azurerm_role_assignment" "akscontributor" {
   role_definition_name = "Contributor"
   scope                = azurerm_resource_group.kube.id
   principal_id         = azurerm_kubernetes_cluster.privateaks.identity[0].principal_id
-}
-
-module "jumpbox" {
-  source                  = "./modules/jumpbox"
-  location                = var.location
-  resource_group          = azurerm_resource_group.vnet.name
-  vnet_id                 = module.hub_network.vnet_id
-  subnet_id               = module.hub_network.subnet_ids["jumpbox-subnet"]
-  dns_zone_name           = join(".", slice(split(".", azurerm_kubernetes_cluster.privateaks.private_fqdn), 1, length(split(".", azurerm_kubernetes_cluster.privateaks.private_fqdn))))
-  dns_zone_resource_group = azurerm_kubernetes_cluster.privateaks.node_resource_group
 }
 
 resource "azurerm_role_assignment" "aksacrpull" {
