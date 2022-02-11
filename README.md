@@ -1,7 +1,7 @@
 # Private AKS Terraform
 Manage a "Fully" private AKS infrastructure with Terraform.
 
-![Full Architecture ](.\architecture.png "image Title")
+![Full Architecture ](./architecture.png "image Title")
 
 # Update the main.tf
 
