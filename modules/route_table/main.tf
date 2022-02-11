@@ -12,13 +12,8 @@ resource "azurerm_route_table" "rt" {
 }
 
 resource "azurerm_subnet_route_table_association" "aks_subnet_association" {
-  for_each = toset(var.subnets)
+  for_each = var.subnets
 
   subnet_id      = each.value
   route_table_id = azurerm_route_table.rt.id
 }
-
-// resource "azurerm_subnet_route_table_association" "aks_subnet_association" {
-//   subnet_id      = var.subnet_id
-//   route_table_id = azurerm_route_table.rt.id
-// }

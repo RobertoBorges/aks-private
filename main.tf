@@ -98,8 +98,9 @@ module "routetable" {
   rt_name            = "kubenetfw_fw_rt"
   r_name             = "kubenetfw_fw_r"
   firewal_private_ip = module.firewall.fw_private_ip
-  subnets            = values(module.kube_network.subnet_ids)
-  // subnet_id          = module.kube_network.subnet_ids["aks-subnet","acr-subnet"]
+  subnets            = module.kube_network.subnet_ids
+
+  depends_on = [module.kube_network, module.hub_network]
 }
 
 module "log_analytics" {
@@ -108,6 +109,22 @@ module "log_analytics" {
   log_analytics_workspace_location = var.log_analytics_workspace_location
   log_analytics_workspace_name     = var.log_analytics_workspace_name
   log_analytics_workspace_sku      = var.log_analytics_workspace_sku
+}
+
+module "private_dns_zone" {
+  source = "./modules/privatedns"
+
+  name                = "privateaks-demo.com"
+  resource_group_name = azurerm_resource_group.vnet.name
+
+  registration_enabled = true 
+
+  linked_vnets = {
+      (var.hub_vnet_name) : module.hub_network.vnet_id,
+      (var.kube_vnet_name) : module.kube_network.vnet_id,
+  }
+
+  tags = {}
 }
 
 resource "azurerm_kubernetes_cluster" "privateaks" {
@@ -185,6 +202,12 @@ resource "azurerm_private_endpoint" "acr-endpoint" {
     subresource_names              = [ "registry" ]
     is_manual_connection           = false
   }
+
+  private_dns_zone_group {
+    name                  = "dns-group"
+    private_dns_zone_ids  = [ module.private_dns_zone.id ]
+  }
+  depends_on = [module.private_dns_zone]
 }
 
 
@@ -251,5 +274,14 @@ resource "azurerm_role_assignment" "devopsagentrole" {
   principal_id         = module.jumpbox.msi
 
   depends_on = [azurerm_kubernetes_cluster.privateaks, module.jumpbox]
+
+}
+
+resource "azurerm_role_assignment" "jumpboxcrpupush" {
+  role_definition_name = "AcrPush"
+  scope                = azurerm_container_registry.acr.id
+  principal_id         = module.jumpbox.msi
+
+  depends_on = [azurerm_kubernetes_cluster.privateaks]
 
 }

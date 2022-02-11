@@ -100,7 +100,8 @@ resource "azurerm_linux_virtual_machine" "jumpbox" {
       "sudo ./bin/installdependencies.sh",
       "wget https://get.helm.sh/helm-v3.3.0-rc.1-linux-amd64.tar.gz",
       "tar -zxvf helm-v3.3.0-rc.1-linux-amd64.tar.gz",
-      "sudo mv linux-amd64/helm /usr/local/bin/helm"
+      "sudo mv linux-amd64/helm /usr/local/bin/helm",
+      "sudo apt install docker.io"
     ]
   }
 }

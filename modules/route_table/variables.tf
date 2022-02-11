@@ -25,5 +25,8 @@ variable firewal_private_ip {
 
 variable subnets {
   description = "AKS subnet ID"
-  type = list(string)
 }
+// variable subnets {
+//   description = "AKS subnet ID"
+//   type = list(string)
+// }
